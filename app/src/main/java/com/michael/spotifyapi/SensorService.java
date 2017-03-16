@@ -221,8 +221,10 @@ public class SensorService extends Service {
                 (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
 
-        if (!MainActivity.itself.isInitialising) {
-            StartMeasuring();
+        if(MainActivity.itself != null) {
+            if (!MainActivity.itself.isInitialising) {
+                StartMeasuring();
+            }
         }
     }
 
