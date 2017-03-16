@@ -126,6 +126,7 @@ public class ChooseBluetoothSlide extends ListFragment implements ISlidePolicy{
         editor.putString(getString(R.string.device_name), device.getName());
         editor.apply();
         Log.d("Device Address", "has been stored");
+        mBluetoothAdapter.stopLeScan(mLeScanCallback);
         for (int i = 0; i < l.getChildCount(); i++){
             if (i == position){
                 l.getChildAt(i).findViewById(R.id.checkbox).setBackgroundResource(radiobutton_on_background);

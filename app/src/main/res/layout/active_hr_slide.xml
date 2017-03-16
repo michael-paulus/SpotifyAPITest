@@ -4,12 +4,12 @@
     android:layout_height="match_parent"
     android:background="@color/colorPrimary">
     <TextView
-        android:id="@+id/initial_title"
+        android:id="@+id/active_title"
         android:layout_width="wrap_content"
         android:layout_height="0dp"
         android:layout_gravity="center"
         android:layout_weight="3"
-        android:text="@string/initial_measuring_title"
+        android:text="@string/active_measuring_title"
         android:gravity="center"
         android:paddingLeft="32dp"
         android:paddingRight="32dp"
@@ -26,13 +26,13 @@
         android:orientation="vertical"
         android:weightSum="1">
         <TextView
-            android:id="@+id/initial_hr_display"
+            android:id="@+id/active_hr_display"
             android:layout_height="wrap_content"
             android:textSize="20sp"
             android:layout_width="wrap_content"/>
 
         <Button
-            android:id="@+id/angry_btn"
+            android:id="@+id/active_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/button_shape"
@@ -54,11 +54,11 @@
         android:weightSum="1">
 
         <TextView
-            android:id="@+id/description"
+            android:id="@+id/active_description"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="@string/initial_measure_explanation"
+            android:text="@string/active_measure_explanation"
             android:layout_weight="0.9"
             android:gravity="center"
             android:textColor="@android:color/white"

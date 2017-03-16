@@ -18,25 +18,17 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
-import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static android.os.BatteryManager.EXTRA_STATUS;
-
 public class SensorService extends Service {
-    public SensorService() {
-    }
 
     public static final String
             ACTION_BATTERY_STATUS = SensorService.class.getName() + "BatteryStatus",
@@ -63,6 +55,25 @@ public class SensorService extends Service {
     BluetoothGattCharacteristic heartRateCharacteristic = null;
     BluetoothGattService batteryLevelService = null;
     BluetoothGattCharacteristic batteryLevelCharacteristic = null;
+    SensorEventListener sensorEventListener = new SensorEventListener() {
+
+        /*
+        Event listener that gets triggered by the android service, when a sensor value has changed
+         */
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            Log.d("SensorService", event.sensor.toString());
+            if (event.values.length == 1) {
+                // Do something with the data
+                sendHR((int) event.values[0]);
+            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+        }
+    };
     private SensorManager mSensorManager;
     private Sensor androidSensor;
     // map below allows to reduce amount of collected data
@@ -95,47 +106,11 @@ public class SensorService extends Service {
                     }).run();
                 }
             };
-    SensorEventListener sensorEventListener = new SensorEventListener() {
-
-        /*
-        Event listener that gets triggered by the android service, when a sensor value has changed
-         */
-        @Override
-        public void onSensorChanged(SensorEvent event) {
-            // Don't unregister the Step Counter Sensor or it will lose all information.
-            if (event.sensor.getType() != Sensor.TYPE_STEP_COUNTER) {
-                // I don't know what happens here. Have to ask Iaros.
-                if (!recordedSensorTypes.containsKey(event.sensor.getType())) {
-                    return;
-                }
-                recordedSensorTypes.remove(event.sensor.getType());
-                mSensorManager.unregisterListener(sensorEventListener, event.sensor);
-            }
-
-            // If the sensor value is of dimension 1, it is a heart rate value, thus gets stored in that way.
-            if (event.values.length == 1) {
-                // Do something with the data
-            }
-
-            if (recordedSensorTypes.isEmpty()) {
-                if (wakeLock.isHeld()) {
-                    wakeLock.release();
-                }
-            }
-
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-        }
-    };
-
     private boolean hrmDisconnected;
 
     /*
-        Out of the box stuff, that is needed to maintain or establish a bluetooth connection.
-         */ {
+    Out of the box stuff, that is needed to maintain or establish a bluetooth connection.
+    */ {
         mGattCallback = new BluetoothGattCallback() {
             @Override
             public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -206,19 +181,17 @@ public class SensorService extends Service {
             @Override
             public void onCharacteristicChanged(BluetoothGatt gatt,
                                                 BluetoothGattCharacteristic characteristic) {
+                int result = ReadHeartRateData(characteristic);
+                Log.d("HR", String.valueOf(result));
 
-                if (recordedSensorTypes.containsKey(Sensor.TYPE_HEART_RATE)) {
-                    recordedSensorTypes.remove(Sensor.TYPE_HEART_RATE);
+                sendHR(result);
 
-                    int result = ReadHeartRateData(characteristic);
-
-                    sendHR(result);
-
-                    mBluetoothGatt.readCharacteristic(batteryLevelCharacteristic);
-                } else return;
-
+                mBluetoothGatt.readCharacteristic(batteryLevelCharacteristic);
             }
         };
+    }
+
+    public SensorService() {
     }
 
     private void showToast(final Context context, final String message, final int length) {
@@ -248,7 +221,7 @@ public class SensorService extends Service {
                 (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
 
-        if (!MainActivity.itself.isInitialising){
+        if (!MainActivity.itself.isInitialising) {
             StartMeasuring();
         }
     }
@@ -284,12 +257,12 @@ public class SensorService extends Service {
         }
         final int heartRate = characteristic.getIntValue(format, 1);
         return heartRate;
-
     }
 
-    public void getHrmAddress() {
+    public String getHrmAddress() {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
         UserHRM = pref.getString(getString(R.string.device_address), "");
+        return UserHRM;
     }
 
     void StartMeasuring() {
@@ -308,13 +281,14 @@ public class SensorService extends Service {
     }
 
     // Stops measuring the heart rate
-    void StopMeasuring() {
+    public void StopMeasuring() {
 
         if (wakeLock.isHeld()) {
             wakeLock.release();
         }
 
         mBluetoothAdapter.stopLeScan(mLeScanCallback);
+        mSensorManager.unregisterListener(sensorEventListener);
 
         if (mBluetoothGatt != null) {
             mBluetoothGatt.close();

@@ -3,6 +3,7 @@ package com.michael.spotifyapi;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.hardware.Sensor;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -110,8 +111,13 @@ public class MainActivity extends Activity implements
         if (!pref.getBoolean("Introduced", false)){
             Intent intent = new Intent(this, IntroActivity.class);
             startActivity(intent);
+        } else {
+            if (SensorService.itself == null) {
+                Log.d("Starting", "SensorsDataService");
+                Intent intent = new Intent(this, SensorService.class);
+                startService(intent);
+            }
         }
-        isInitialising = false;
 
         Log.d("MainActivity", "AccessToken: " + AccessToken);
 

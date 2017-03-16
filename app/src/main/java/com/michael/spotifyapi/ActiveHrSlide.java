@@ -14,15 +14,15 @@ import com.github.paolorotolo.appintro.ISlidePolicy;
  * Created by Michael on 16.03.2017.
  */
 
-public class RestingHrSlide extends Fragment implements ISlidePolicy{
+public class ActiveHrSlide extends Fragment implements ISlidePolicy{
 
     private static final String ARG_LAYOUT_RES_ID = "layoutResId";
     public static Fragment itself;
     private int layoutResId;
     private static boolean policyRespected = false;
 
-    public static RestingHrSlide newInstance(int layoutResId) {
-        RestingHrSlide restingHrSlide = new RestingHrSlide();
+    public static ActiveHrSlide newInstance(int layoutResId) {
+        ActiveHrSlide restingHrSlide = new ActiveHrSlide();
 
         Bundle args = new Bundle();
         args.putInt(ARG_LAYOUT_RES_ID, layoutResId);
@@ -32,7 +32,7 @@ public class RestingHrSlide extends Fragment implements ISlidePolicy{
     }
 
     public static void setPolicyRespected(boolean policyRespected) {
-        RestingHrSlide.policyRespected = policyRespected;
+        ActiveHrSlide.policyRespected = policyRespected;
     }
 
     @Override
@@ -59,7 +59,7 @@ public class RestingHrSlide extends Fragment implements ISlidePolicy{
 
     @Override
     public void onUserIllegallyRequestedNextPage(){
-            Toast.makeText(getContext(), "Please take the initial measurement",
+            Toast.makeText(getContext(), "Please take the active measurement",
     Toast.LENGTH_SHORT).show();
     }
 }

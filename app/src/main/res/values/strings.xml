@@ -8,5 +8,7 @@
     <string name="device_explanation">Your bluetooth device is the monitor which measures your heart rate.</string>
     <string name="measure_button">Go!</string>
     <string name="initial_measuring_title">Let us measure your heart rate</string>
-    <string name="initial_measure_explanation">Please sit down where it\'s quiet. We will measure you heart rate for about 15 seconds.</string>
+    <string name="initial_measure_explanation">Please sit down where it\'s quiet. We will measure you heart rate for about 30 seconds.</string>
+    <string name="active_measuring_title">Now for something more sporty</string>
+    <string name="active_measure_explanation">Run up some stairs to get your heart rate up. While running, press \"Go!\"</string>
 </resources>
