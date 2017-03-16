@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Spotify API</string>
+    <string name="device_address">Device Address:</string>
+    <string name="device_name">Device Name:</string>
+    <string name="unknown_device">Unknown Device</string>
+    <string name="error_bluetooth_not_supported">Bluetooth not supported!</string>
+    <string name="device_title">Choose your bluetooth device</string>
+    <string name="device_explanation">Your bluetooth device is the monitor which measures your heart rate.</string>
+    <string name="measure_button">Go!</string>
+    <string name="initial_measuring_title">Let us measure your heart rate</string>
+    <string name="initial_measure_explanation">Please sit down where it\'s quiet. We will measure you heart rate for about 15 seconds.</string>
 </resources>

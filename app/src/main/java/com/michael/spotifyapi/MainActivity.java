@@ -2,7 +2,9 @@ package com.michael.spotifyapi;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.spotify.sdk.android.authentication.AuthenticationClient;
@@ -23,13 +25,18 @@ public class MainActivity extends Activity implements
     private static final String CLIENT_ID = "3a4fb9c0247847a2aafa0ee68fc3043e";
     private static final String REDIRECT_URI = "michael-spotifyapi://callback";
     private static final int REQUEST_CODE = 1337;
+    public static MainActivity itself;
 
     private Player mPlayer;
+    private String AccessToken;
+    public boolean isInitialising = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        itself = this;
 
         AuthenticationRequest.Builder builder = new AuthenticationRequest.Builder(CLIENT_ID,
                 AuthenticationResponse.Type.TOKEN,
@@ -49,6 +56,7 @@ public class MainActivity extends Activity implements
             AuthenticationResponse response = AuthenticationClient.getResponse(resultCode, intent);
             if (response.getType() == AuthenticationResponse.Type.TOKEN) {
                 Config playerConfig = new Config(this, response.getAccessToken(), CLIENT_ID);
+                this.AccessToken = response.getAccessToken();
                 Spotify.getPlayer(playerConfig, this, new SpotifyPlayer.InitializationObserver() {
                     @Override
                     public void onInitialized(SpotifyPlayer spotifyPlayer) {
@@ -96,10 +104,18 @@ public class MainActivity extends Activity implements
     public void onLoggedIn() {
         Log.d("MainActivity", "User logged in");
 
-        //Succesfully set up a connection to Spotify, now able to play back tracks.
+        //Successfully set up a connection to Spotify, now able to play back tracks.
         //TODO: magic.
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+        if (!pref.getBoolean("Introduced", false)){
+            Intent intent = new Intent(this, IntroActivity.class);
+            startActivity(intent);
+        }
+        isInitialising = false;
 
-        mPlayer.playUri(null, "spotify:track:2TpxZ7JUBn3uw46aR7qd6V", 0, 0);
+        Log.d("MainActivity", "AccessToken: " + AccessToken);
+
+        //mPlayer.playUri(null, "spotify:track:2TpxZ7JUBn3uw46aR7qd6V", 0, 0);
     }
 
     @Override
