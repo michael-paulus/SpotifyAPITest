@@ -11,8 +11,10 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -33,6 +35,7 @@ public class SensorService extends Service {
     public static final String
             ACTION_BATTERY_STATUS = SensorService.class.getName() + "BatteryStatus",
             ACTION_HR = SensorService.class.getName() + "HeartRate",
+            ACTION_HR_CONNECTED = SensorService.class.getName() + "HRM connected",
             EXTRA_STATUS = "extra_status",
             EXTRA_HR = "extra_hr",
             TAG = "MainActivity",
@@ -46,6 +49,7 @@ public class SensorService extends Service {
             Battery_Level_UUID =
                     UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb");
     public static SensorService itself;
+    public static String WAKE_UP = SensorService.class.getName() + "Wake up!";
     private final BluetoothGattCallback mGattCallback;
     String UserHRM = "";
     PowerManager.WakeLock wakeLock = null;
@@ -81,31 +85,48 @@ public class SensorService extends Service {
     private BluetoothAdapter mBluetoothAdapter;
     private boolean isInitialising = true;
     // Device scan callback.
-    private BluetoothAdapter.LeScanCallback mLeScanCallback =
-            new BluetoothAdapter.LeScanCallback() {
-
+    private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
+        @Override
+        public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
+            new Thread(new Runnable() {
                 @Override
-                public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
+                public void run() {
 
-                            // already found the hrm
-                            if (hrmDevice != null) {
-                                return;
-                            }
+                    // already found the hrm
+                    if (hrmDevice != null) {
+                        return;
+                    }
 
-                            String name = device.getAddress();
+                    String name = device.getAddress();
 
-                            if (name.equals(UserHRM)) {
-                                hrmDevice = device;
-                                connectDevice(device);
-                            }
+                    if (name.equals(UserHRM)) {
+                        hrmDevice = device;
+                        connectDevice(device);
+                    }
 
-                        }
-                    }).run();
                 }
-            };
+            }).run();
+        }
+    };
+    private BroadcastReceiver AlarmClockReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d("SensorService", "Starting new Intent");
+            if (MainActivity.itself == null) {
+                Intent startMainActivityIntent = new Intent(itself, MainActivity.class);
+                startMainActivityIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(startMainActivityIntent);
+            }
+            BroadcastMessage(WAKE_UP);
+        }
+    };
+
+    private void BroadcastMessage(String message) {
+        Intent messageIntent = new Intent();
+        messageIntent.setAction(message);
+        sendBroadcast(messageIntent);
+    }
+
     private boolean hrmDisconnected;
 
     /*
@@ -117,6 +138,7 @@ public class SensorService extends Service {
                 String intentAction;
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     mBluetoothGatt.discoverServices();
+                    BroadcastMessage(ACTION_HR_CONNECTED);
                     showToast(getApplicationContext(), "HRM connected", Toast.LENGTH_SHORT);
                     hrmDisconnected = false;
                     mBluetoothAdapter.stopLeScan(mLeScanCallback);
@@ -280,6 +302,13 @@ public class SensorService extends Service {
             wakeLock.acquire();
         }
 
+        RegisterAlarmClockReceiver();
+    }
+
+    private void RegisterAlarmClockReceiver() {
+        final IntentFilter filter = new IntentFilter();
+        filter.addAction("com.samsung.sec.android.clockpackage.alarm.ALARM_STARTED_IN_ALERT");
+        this.registerReceiver(this.AlarmClockReceiver, filter);
     }
 
     // Stops measuring the heart rate

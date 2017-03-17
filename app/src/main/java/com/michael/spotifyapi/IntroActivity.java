@@ -63,6 +63,7 @@ public class IntroActivity extends AppIntro {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         itself = this;
+        this.setFinishOnTouchOutside(false);
 
         initialHeartRates = new ArrayList<>();
         activeHeartRates = new ArrayList<>();
@@ -252,6 +253,9 @@ public class IntroActivity extends AppIntro {
         }
 
         protected void onPostExecute(Integer[] result){
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(itself);
+            SharedPreferences.Editor edit = pref.edit();
+            edit.putInt("CalmHeartRate", result[0]);
             TextView hrLabel = (TextView) findViewById(R.id.initial_hr_display);
             hrLabel.setText("Average: " + result[0] + "\nMaximum: " + result[1] + "\nMinimum: " + result[2]);
             RestingHrSlide.setPolicyRespected(true);
@@ -282,6 +286,9 @@ public class IntroActivity extends AppIntro {
         }
 
         protected void onPostExecute(Integer[] result){
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(itself);
+            SharedPreferences.Editor edit = pref.edit();
+            edit.putInt("ActiveHeartRate", result[0]);
             TextView hrLabel = (TextView) findViewById(R.id.active_hr_display);
             hrLabel.setText("Average: " + result[0] + "\nMaximum: " + result[1] + "\nMinimum: " + result[2]);
             ActiveHrSlide.setPolicyRespected(true);

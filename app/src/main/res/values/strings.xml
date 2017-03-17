@@ -11,4 +11,10 @@
     <string name="initial_measure_explanation">Please sit down where it\'s quiet. We will measure you heart rate for about 30 seconds.</string>
     <string name="active_measuring_title">Now for something more sporty</string>
     <string name="active_measure_explanation">Run up some stairs to get your heart rate up. While running, press \"Go!\"</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="change_bluetooth">Change Bluetooth monitor</string>
+    <string name="redo_intro">Redo intro</string>
+    <string name="confirm_button">Confirm</string>
 </resources>
