@@ -42,7 +42,6 @@ dependencies {
 
     compile 'com.github.kaaes:spotify-web-api-android:0.4.1'
     compile 'com.android.support:appcompat-v7:25.3.0'
-    compile 'com.android.support:appcompat-v7:25.3.0'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'com.github.paolorotolo:appintro:4.1.0'
     compile 'commons-beanutils:commons-beanutils:20030211.134440'

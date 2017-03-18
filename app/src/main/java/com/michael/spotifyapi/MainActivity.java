@@ -1,16 +1,21 @@
 package com.michael.spotifyapi;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.provider.CalendarContract;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -461,6 +466,40 @@ public class MainActivity extends AppCompatActivity implements
                     });
                 }
                 break;
+            case R.id.auto_determine_music:
+                autoDetermineMusic("");
+                break;
+        }
+    }
+
+    private void autoDetermineMusic(String s) {
+        if (s.equals("")) {
+            long begin = System.currentTimeMillis(); // starting time in milliseconds
+            long end = System.currentTimeMillis() + 30 * 60 * 1000;// ending time in milliseconds
+            String[] proj =
+                    new String[]{
+                            CalendarContract.Events._ID,
+                            CalendarContract.Events.DTSTART,
+                            CalendarContract.Events.DTEND,
+                            CalendarContract.Events.TITLE};
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+            String mSelectionClause = "WHERE " + CalendarContract.Events.DTSTART + " BETWEEN " + begin + " AND "
+                    + end + " AND " + CalendarContract.Events.CALENDAR_ID + " = " + pref.getLong(getString(R.string.calendar_id), 0);
+            String[] mSelectionArgs = {};
+            Cursor mCursor = getContentResolver().query(
+                    CalendarContract.Events.CONTENT_URI,   // The content URI of the words table
+                    proj,                        // The columns to return for each row
+                    mSelectionClause,                   // Selection criteria
+                    mSelectionArgs,                     // Selection criteria
+                    "");
+            if (mCursor.getCount() > 0) {
+                while (mCursor.moveToNext()){
+                    Log.d("Found event", mCursor.getString(3));
+                }
+            }
         }
     }
 

@@ -6,11 +6,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.provider.CalendarContract.Calendars;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.View;
@@ -75,6 +79,8 @@ public class IntroActivity extends AppIntro {
         addSlide(ChooseBluetoothSlide.newInstance(R.layout.choose_bluetooth_slide));
         addSlide(RestingHrSlide.newInstance(R.layout.resting_hr_slide));
         addSlide(ActiveHrSlide.newInstance(R.layout.active_hr_slide));
+        addSlide(AppIntroFragment.newInstance("Please give me access to your calendar", "Long description why", stat_sys_data_bluetooth, getColor(R.color.colorPrimary)));
+        addSlide(ChooseCalendarSlide.newInstance(R.layout.choose_calendar_slide));
 
         // OPTIONAL METHODS
         // Override bar/separator color.
@@ -86,8 +92,8 @@ public class IntroActivity extends AppIntro {
         setProgressButtonEnabled(true);
         setBackButtonVisibilityWithDone(true);
         setFadeAnimation();
-        //askForPermissions(new String[]{Manifest.permission.BLUETOOTH}, 1);
         askForPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+        askForPermissions(new String[]{Manifest.permission.READ_CALENDAR}, 5);
     }
 
     public void onClick(View v) {
@@ -124,7 +130,51 @@ public class IntroActivity extends AppIntro {
                 };
                 mHandler.postDelayed(runnable, 500);
                 break;
+            case R.id.check_calendar_button:
+                queryForCalendars();
         }
+    }
+
+    class SmallCalendar {
+        long id;
+        String name;
+        String account;
+        SmallCalendar(long id, String name, String account){
+            this.id = id;
+            this.name = name;
+            this.account = account;
+        }
+    }
+
+    private void queryForCalendars() {
+        ArrayList<SmallCalendar> calendars = new ArrayList<>();
+        String[] projection =
+                new String[]{
+                        Calendars._ID,
+                        Calendars.NAME,
+                        Calendars.ACCOUNT_NAME,
+                        Calendars.ACCOUNT_TYPE};
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        Cursor calCursor =
+                getContentResolver().
+                        query(Calendars.CONTENT_URI,
+                                projection,
+                                Calendars.VISIBLE + " = 1",
+                                null,
+                                Calendars._ID + " ASC");
+        if (calCursor.moveToFirst()) {
+            do {
+                long id = calCursor.getLong(0);
+                String displayName = calCursor.getString(1);
+                String accountName = calCursor.getString(2);
+                SmallCalendar calendar = new SmallCalendar(id, displayName, accountName);
+                calendars.add(calendar);
+            } while (calCursor.moveToNext());
+        }
+
+        ChooseCalendarSlide.itself.showCalendars(calendars);
     }
 
     private void RegisterBroadcastReceiver(int i) {

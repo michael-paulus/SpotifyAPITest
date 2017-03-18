@@ -18,4 +18,10 @@
     <string name="redo_intro">Redo intro</string>
     <string name="confirm_button">Confirm</string>
     <string name="unknown_playlist">Unknown Playlist</string>
+    <string name="email_slide_title">Enter your google account\'s eMail address</string>
+    <string name="email_slide_explanation">With your eMail, we can access your calendar which helps us deliver more fitting music to you!</string>
+    <string name="calendar_account">calendar account</string>
+    <string name="calendar_name">calendar name</string>
+    <string name="auto_determine_music">Shuffle something!</string>
+    <string name="calendar_id">calendar id</string>
 </resources>
