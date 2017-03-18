@@ -486,20 +486,23 @@ public class MainActivity extends AppCompatActivity implements
                 return;
             }
             SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
-            String mSelectionClause = "WHERE " + CalendarContract.Events.DTSTART + " BETWEEN " + begin + " AND "
+            String mSelectionClause = CalendarContract.Events.DTSTART + " BETWEEN " + begin + " AND "
                     + end + " AND " + CalendarContract.Events.CALENDAR_ID + " = " + pref.getLong(getString(R.string.calendar_id), 0);
             String[] mSelectionArgs = {};
             Cursor mCursor = getContentResolver().query(
                     CalendarContract.Events.CONTENT_URI,   // The content URI of the words table
                     proj,                        // The columns to return for each row
                     mSelectionClause,                   // Selection criteria
-                    mSelectionArgs,                     // Selection criteria
-                    "");
+                    null,                     // Selection criteria
+                    null);
             if (mCursor.getCount() > 0) {
                 while (mCursor.moveToNext()){
                     Log.d("Found event", mCursor.getString(3));
                 }
+            } else {
+                Log.d("Found no", "event");
             }
+            mCursor.close();
         }
     }
 
