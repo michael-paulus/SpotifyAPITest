@@ -5,7 +5,6 @@
     tools:context="com.michael.spotifyapi.PlayerFragment"
     android:background="@color/colorPrimaryLight">
 
-    <!-- TODO: Update blank fragment layout -->
     <ImageView
         android:id="@+id/album_cover"
         android:layout_width="80dp"
@@ -26,7 +25,7 @@
             <TextView
                 android:id="@+id/song_name"
                 android:ellipsize="end"
-                android:maxLines="1"
+                android:maxLines="2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingBottom="5dp"/>

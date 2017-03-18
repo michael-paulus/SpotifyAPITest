@@ -14,7 +14,7 @@ import com.github.paolorotolo.appintro.ISlidePolicy;
  * Created by Michael on 16.03.2017.
  */
 
-public class RestingHrSlide extends Fragment implements ISlidePolicy{
+public class RestingHrSlide extends Fragment implements ISlidePolicy {
 
     private static final String ARG_LAYOUT_RES_ID = "layoutResId";
     public static Fragment itself;
@@ -58,8 +58,8 @@ public class RestingHrSlide extends Fragment implements ISlidePolicy{
     }
 
     @Override
-    public void onUserIllegallyRequestedNextPage(){
-            Toast.makeText(getContext(), "Please take the initial measurement",
-    Toast.LENGTH_SHORT).show();
+    public void onUserIllegallyRequestedNextPage() {
+        Toast.makeText(getContext(), "Please take the initial measurement",
+                Toast.LENGTH_SHORT).show();
     }
 }

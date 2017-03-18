@@ -31,7 +31,7 @@ import static android.R.drawable.radiobutton_on_background;
  * Created by Michael on 16.03.2017.
  */
 
-public class ChooseBluetoothSlide extends ListFragment implements ISlidePolicy{
+public class ChooseBluetoothSlide extends ListFragment implements ISlidePolicy {
 
     private static final String ARG_LAYOUT_RES_ID = "layoutResId";
     private int layoutResId;
@@ -127,8 +127,8 @@ public class ChooseBluetoothSlide extends ListFragment implements ISlidePolicy{
         editor.apply();
         Log.d("Device Address", "has been stored");
         mBluetoothAdapter.stopLeScan(mLeScanCallback);
-        for (int i = 0; i < l.getChildCount(); i++){
-            if (i == position){
+        for (int i = 0; i < l.getChildCount(); i++) {
+            if (i == position) {
                 l.getChildAt(i).findViewById(R.id.checkbox).setBackgroundResource(radiobutton_on_background);
                 TextView name = (TextView) l.getChildAt(i).findViewById(R.id.device_name);
                 name.setTextColor(getContext().getColor(R.color.colorAccent));

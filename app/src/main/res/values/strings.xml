@@ -17,4 +17,5 @@
     <string name="change_bluetooth">Change Bluetooth monitor</string>
     <string name="redo_intro">Redo intro</string>
     <string name="confirm_button">Confirm</string>
+    <string name="unknown_playlist">Unknown Playlist</string>
 </resources>

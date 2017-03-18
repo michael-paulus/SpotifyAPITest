@@ -8,9 +8,9 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -97,8 +97,8 @@ public class ChangeBluetoothActivity extends ListActivity {
         editor.apply();
         Log.d("Device Address", "has been stored");
         mBluetoothAdapter.stopLeScan(mLeScanCallback);
-        for (int i = 0; i < l.getChildCount(); i++){
-            if (i == position){
+        for (int i = 0; i < l.getChildCount(); i++) {
+            if (i == position) {
                 l.getChildAt(i).findViewById(R.id.checkbox).setBackgroundResource(radiobutton_on_background);
                 TextView name = (TextView) l.getChildAt(i).findViewById(R.id.device_name);
                 name.setTextColor(this.getColor(R.color.colorAccent));
@@ -138,8 +138,14 @@ public class ChangeBluetoothActivity extends ListActivity {
         }
     }
 
+    @Override
+    public void onDestroy() {
+        SensorService.itself.StartMeasuring();
+        super.onDestroy();
+    }
+
     public void onClick(View view) {
-        switch (view.getId()){
+        switch (view.getId()) {
             case R.id.confirm:
                 finish();
         }
@@ -149,6 +155,7 @@ public class ChangeBluetoothActivity extends ListActivity {
         TextView deviceName;
         TextView deviceAddress;
     }
+
     private class LeDeviceListAdapter extends BaseAdapter {
         private ArrayList<BluetoothDevice> mLeDevices;
         private LayoutInflater mInflator;

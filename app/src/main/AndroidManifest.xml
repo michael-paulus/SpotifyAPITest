@@ -36,7 +36,12 @@
             android:enabled="true"
             android:exported="true" />
 
-        <activity android:name=".ChangeBluetoothActivity"></activity>
+        <activity android:name=".ChangeBluetoothActivity" />
+
+        <service
+            android:name=".SpotifyWebRequestService"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>

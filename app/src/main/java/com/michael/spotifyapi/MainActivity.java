@@ -48,13 +48,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 public class MainActivity extends AppCompatActivity implements
-        SpotifyPlayer.NotificationCallback, ConnectionStateCallback, OnChartValueSelectedListener
-{
+        SpotifyPlayer.NotificationCallback, ConnectionStateCallback, OnChartValueSelectedListener {
 
-    private static final String CLIENT_ID = "3a4fb9c0247847a2aafa0ee68fc3043e";
-    private static final String REDIRECT_URI = "michael-spotifyapi://callback";
-    private static final int REQUEST_CODE = 1337;
-    private static final String TYPE_PLAYLIST = "Playlist";
+    public static final String CLIENT_ID = "3a4fb9c0247847a2aafa0ee68fc3043e";
+    public static final String REDIRECT_URI = "michael-spotifyapi://callback";
+    public static final int REQUEST_CODE = 1337;
+    public static final String TYPE_PLAYLIST = "Playlist";
     public static MainActivity itself;
 
     private Player mPlayer;
@@ -70,17 +69,15 @@ public class MainActivity extends AppCompatActivity implements
                 Runnable runnable = new Runnable() {
                     @Override
                     public void run() {
-                        TextView messageField = (TextView) findViewById(R.id.MainLabel);
-                        messageField.setText("Received alarm clock update");
                         playWakeUpMusic();
                     }
                 };
                 runOnUiThread(runnable);
-            } else if (action.equals(SensorService.ACTION_HR)){
+            } else if (action.equals(SensorService.ACTION_HR)) {
                 int i = intent.getIntExtra(SensorService.EXTRA_HR, 0);
                 Log.d("Received heart rate", String.valueOf(i));
                 addEntry(i);
-            } else if (action.equals(SensorService.ACTION_HR_CONNECTED)){
+            } else if (action.equals(SensorService.ACTION_HR_CONNECTED)) {
                 mChart = (LineChart) findViewById(R.id.hr_chart);
                 mChart.setOnChartValueSelectedListener(itself);
 
@@ -91,12 +88,12 @@ public class MainActivity extends AppCompatActivity implements
                 //mChart.setTouchEnabled(true);
 
                 // enable scaling and dragging
-                //mChart.setDragEnabled(true);
-                //mChart.setScaleEnabled(true);
+                mChart.setDragEnabled(false);
+                mChart.setScaleEnabled(false);
                 //mChart.setDrawGridBackground(false);
 
                 // if disabled, scaling can be done on x- and y-axis separately
-                //mChart.setPinchZoom(true);
+                mChart.setPinchZoom(false);
 
                 // set an alternative background color
                 //mChart.setBackgroundColor(Color.LTGRAY);
@@ -125,7 +122,7 @@ public class MainActivity extends AppCompatActivity implements
 
                 YAxis leftAxis = mChart.getAxisLeft();
                 leftAxis.setTextColor(Color.WHITE);
-                leftAxis.setAxisMinimum(30f);
+                leftAxis.setAxisMinimum(40f);
                 leftAxis.setDrawGridLines(true);
 
                 YAxis rightAxis = mChart.getAxisRight();
@@ -134,6 +131,10 @@ public class MainActivity extends AppCompatActivity implements
             }
         }
     };
+
+    public String getAccessToken() {
+        return AccessToken;
+    }
 
     private void addEntry(int i) {
 
@@ -190,8 +191,8 @@ public class MainActivity extends AppCompatActivity implements
         playMusic("spotify:user:1154572061:playlist:6MPgJeqV7uSo8oIZCdRnGp", TYPE_PLAYLIST);
     }
 
-    private void playMusic(String s, String typePlaylist) {
-        switch (typePlaylist){
+    void playMusic(String s, String typePlaylist) {
+        switch (typePlaylist) {
             case TYPE_PLAYLIST:
                 if (mPlayer != null) {
                     mPlayer.playUri(null, s, 0, 0);
@@ -211,7 +212,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private void resumePlayMusic() {
         if (mPlayer != null) {
-            if (mPlayer.getMetadata().currentTrack!=null) {
+            if (mPlayer.getMetadata().currentTrack != null) {
                 mPlayer.resume(new Player.OperationCallback() {
                     @Override
                     public void onSuccess() {
@@ -268,6 +269,10 @@ public class MainActivity extends AppCompatActivity implements
             if (response.getType() == AuthenticationResponse.Type.TOKEN) {
                 Config playerConfig = new Config(this, response.getAccessToken(), CLIENT_ID);
                 this.AccessToken = response.getAccessToken();
+                SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+                SharedPreferences.Editor edit = pref.edit();
+                edit.putString("SpotifyAccessToken", AccessToken);
+                edit.apply();
                 Spotify.getPlayer(playerConfig, this, new SpotifyPlayer.InitializationObserver() {
                     @Override
                     public void onInitialized(SpotifyPlayer spotifyPlayer) {
@@ -358,10 +363,10 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    public void onClick(View v){
-        switch (v.getId()){
+    public void onClick(View v) {
+        switch (v.getId()) {
             case R.id.play_button:
-                if (mPlayer.getPlaybackState().isPlaying){
+                if (mPlayer.getPlaybackState().isPlaying) {
                     mPlayer.pause(new Player.OperationCallback() {
                         @Override
                         public void onSuccess() {
@@ -379,7 +384,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
                 break;
             case R.id.skip_button:
-                if (mPlayer.getPlaybackState().isPlaying){
+                if (mPlayer.getPlaybackState().isPlaying) {
                     mPlayer.skipToNext(new Player.OperationCallback() {
                         @Override
                         public void onSuccess() {
@@ -417,7 +422,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
                 break;
             case R.id.go_back_button:
-                if (mPlayer.getPlaybackState().isPlaying){
+                if (mPlayer.getPlaybackState().isPlaying) {
                     mPlayer.skipToPrevious(new Player.OperationCallback() {
                         @Override
                         public void onSuccess() {
@@ -466,7 +471,7 @@ public class MainActivity extends AppCompatActivity implements
         //Successfully set up a connection to Spotify, now able to play back tracks.
         //TODO: magic.
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
-        if (!pref.getBoolean("Introduced", false)){
+        if (!pref.getBoolean("Introduced", false)) {
             Intent intent = new Intent(this, IntroActivity.class);
             startActivity(intent);
         } else {
@@ -474,6 +479,13 @@ public class MainActivity extends AppCompatActivity implements
                 Log.d("Starting", "SensorsDataService");
                 Intent intent = new Intent(this, SensorService.class);
                 startService(intent);
+            }
+            if (SpotifyWebRequestService.itself == null) {
+                Log.d("Starting", "SpotifyWebRequestService");
+                Intent webIntent = new Intent(this, SpotifyWebRequestService.class);
+                startService(webIntent);
+            } else {
+                SpotifyWebRequestService.itself.getMyPlaylists();
             }
         }
 
@@ -516,14 +528,14 @@ public class MainActivity extends AppCompatActivity implements
                 changeBluetooth();
                 return true;
             case R.id.redo_intro:
-                redoLogin();
+                redoIntro();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    private void redoLogin() {
+    private void redoIntro() {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor edit = pref.edit();
         SensorService.itself.StopMeasuring();

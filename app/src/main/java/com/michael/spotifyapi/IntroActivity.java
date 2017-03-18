@@ -7,11 +7,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -90,8 +90,8 @@ public class IntroActivity extends AppIntro {
         askForPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
     }
 
-    public void onClick(View v){
-        switch (v.getId()){
+    public void onClick(View v) {
+        switch (v.getId()) {
             case R.id.angry_btn:
                 MainActivity.itself.isInitialising = false;
                 if (SensorService.itself == null) {
@@ -135,7 +135,7 @@ public class IntroActivity extends AppIntro {
             filter.addAction(SensorService.ACTION_HR);
             filter.addCategory(Intent.CATEGORY_DEFAULT);
             registerReceiver(initialBroadcastReceiver, filter);
-        } else if (i == 1){
+        } else if (i == 1) {
             IntentFilter filter = new IntentFilter();
             filter.addAction(SensorService.ACTION_BATTERY_STATUS);
             filter.addAction(SensorService.ACTION_HR);
@@ -156,17 +156,17 @@ public class IntroActivity extends AppIntro {
             public void run() {
                 TextView title = (TextView) findViewById(R.id.initial_title);
                 i[0]++;
-                if (i[0] >= 309){
+                if (i[0] >= 309) {
                     title.setText("Done!");
                     TextView hrValue = (TextView) findViewById(R.id.initial_hr_display);
                     hrValue.setText("");
                     UnregisterBroadcastReceiver(0);
                     new calculateHrValuesTask().execute();
-                } else if (i[0] >= 299 && i[0] < 309){
+                } else if (i[0] >= 299 && i[0] < 309) {
                     title.setText("0:30");
                     mHandler.postDelayed(this, 100);
                 } else {
-                    title.setText("0:" + String.valueOf(i[0]/10));
+                    title.setText("0:" + String.valueOf(i[0] / 10));
                     mHandler.postDelayed(this, 100);
                 }
             }
@@ -186,17 +186,17 @@ public class IntroActivity extends AppIntro {
             public void run() {
                 TextView title = (TextView) findViewById(R.id.active_title);
                 i[0]++;
-                if (i[0] >= 309){
+                if (i[0] >= 309) {
                     title.setText("Done!");
                     TextView hrValue = (TextView) findViewById(R.id.active_hr_display);
                     hrValue.setText("");
                     UnregisterBroadcastReceiver(1);
                     new calculateActiveHrValuesTask().execute();
-                } else if (i[0] >= 299 && i[0] < 309){
+                } else if (i[0] >= 299 && i[0] < 309) {
                     title.setText("0:30");
                     mHandler.postDelayed(this, 100);
                 } else {
-                    title.setText("0:" + String.valueOf(i[0]/10));
+                    title.setText("0:" + String.valueOf(i[0] / 10));
                     mHandler.postDelayed(this, 100);
                 }
             }
@@ -229,7 +229,7 @@ public class IntroActivity extends AppIntro {
         // Do something when the slide changes.
     }
 
-    private class calculateHrValuesTask extends AsyncTask<Void, Void, Integer[]>{
+    private class calculateHrValuesTask extends AsyncTask<Void, Void, Integer[]> {
 
         @Override
         protected Integer[] doInBackground(Void... params) {
@@ -237,22 +237,22 @@ public class IntroActivity extends AppIntro {
             Integer sum = 0;
             Integer max = 0;
             Integer min = 200;
-            for (Integer i: initialHeartRates){
+            for (Integer i : initialHeartRates) {
                 sum += i;
-                if (i>max){
+                if (i > max) {
                     max = i;
                 }
-                if (i<min){
+                if (i < min) {
                     min = i;
                 }
             }
-            HrValues[0]=sum/initialHeartRates.size();
-            HrValues[1]=max;
-            HrValues[2]=min;
+            HrValues[0] = sum / initialHeartRates.size();
+            HrValues[1] = max;
+            HrValues[2] = min;
             return HrValues;
         }
 
-        protected void onPostExecute(Integer[] result){
+        protected void onPostExecute(Integer[] result) {
             SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(itself);
             SharedPreferences.Editor edit = pref.edit();
             edit.putInt("CalmHeartRate", result[0]);
@@ -262,7 +262,7 @@ public class IntroActivity extends AppIntro {
         }
     }
 
-    private class calculateActiveHrValuesTask extends AsyncTask<Void, Void, Integer[]>{
+    private class calculateActiveHrValuesTask extends AsyncTask<Void, Void, Integer[]> {
 
         @Override
         protected Integer[] doInBackground(Void... params) {
@@ -270,22 +270,22 @@ public class IntroActivity extends AppIntro {
             Integer sum = 0;
             Integer max = 0;
             Integer min = 200;
-            for (Integer i: activeHeartRates){
+            for (Integer i : activeHeartRates) {
                 sum += i;
-                if (i>max){
+                if (i > max) {
                     max = i;
                 }
-                if (i<min){
+                if (i < min) {
                     min = i;
                 }
             }
-            HrValues[0]=sum/activeHeartRates.size();
-            HrValues[1]=max;
-            HrValues[2]=min;
+            HrValues[0] = sum / activeHeartRates.size();
+            HrValues[1] = max;
+            HrValues[2] = min;
             return HrValues;
         }
 
-        protected void onPostExecute(Integer[] result){
+        protected void onPostExecute(Integer[] result) {
             SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(itself);
             SharedPreferences.Editor edit = pref.edit();
             edit.putInt("ActiveHeartRate", result[0]);
