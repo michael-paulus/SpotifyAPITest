@@ -2,6 +2,7 @@ package com.michael.spotifyapi;
 
 import android.app.Service;
 import android.content.Intent;
+import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -35,8 +36,6 @@ public class SpotifyWebRequestService extends Service {
         Log.d("SpotifyWebService", "Created");
 
         itself = this;
-
-        if (MainActivity.itself != null) {
             SpotifyApi api = new SpotifyApi();
 
             // Most (but not all) of the Spotify Web API endpoints require authorisation.
@@ -44,6 +43,8 @@ public class SpotifyWebRequestService extends Service {
             api.setAccessToken(PreferenceManager.getDefaultSharedPreferences(this).getString("SpotifyAccessToken", ""));
 
             spotify = api.getService();
+
+        if (MainActivity.itself != null) {
             if (!MainActivity.itself.isInitialising) {
                 mDbHelper = new DbHelper(this);
                 getMyPlaylists();
@@ -52,39 +53,53 @@ public class SpotifyWebRequestService extends Service {
     }
 
     public void getMyPlaylists() {
-        spotify.getMyPlaylists(new SpotifyCallback<Pager<PlaylistSimple>>() {
-            @Override
-            public void failure(SpotifyError spotifyError) {
+        try {
+            spotify.getMyPlaylists(new SpotifyCallback<Pager<PlaylistSimple>>() {
+                @Override
+                public void failure(SpotifyError spotifyError) {
+                    Log.d("getMyPlaylist", "failed");
+                }
 
-            }
-
-            @Override
-            public void success(final Pager<PlaylistSimple> playlistSimplePager, Response response) {
-                mDbHelper.deletePlaylists();
-                spotify.getMe(new SpotifyCallback<UserPrivate>() {
-                    @Override
-                    public void failure(SpotifyError spotifyError) {
-
-                    }
-
-                    @Override
-                    public void success(UserPrivate userPrivate, Response response) {
-                        for (PlaylistSimple playlist: playlistSimplePager.items){
-                            spotify.getPlaylist(userPrivate.id, playlist.id, new SpotifyCallback<Playlist>() {
-                                @Override
-                                public void failure(SpotifyError spotifyError) {
-
-                                }
-
-                                @Override
-                                public void success(Playlist playlist, Response response) {
-                                    mDbHelper.storePlaylist(playlist);
-                                }
-                            });
+                @Override
+                public void success(final Pager<PlaylistSimple> playlistSimplePager, Response response) {
+                    mDbHelper = new DbHelper(SpotifyWebRequestService.itself);
+                    mDbHelper.deletePlaylists();
+                    spotify.getMe(new SpotifyCallback<UserPrivate>() {
+                        @Override
+                        public void failure(SpotifyError spotifyError) {
+                            Log.d("getMe", "failed");
                         }
-                    }
-                });
-            }
-        });
+
+                        @Override
+                        public void success(UserPrivate userPrivate, Response response) {
+                            for (PlaylistSimple playlist : playlistSimplePager.items) {
+                                spotify.getPlaylist(userPrivate.id, playlist.id, new SpotifyCallback<Playlist>() {
+                                    @Override
+                                    public void failure(SpotifyError spotifyError) {
+                                        Log.d("getPlaylist", "failed");
+                                    }
+
+                                    @Override
+                                    public void success(Playlist playlist, Response response) {
+                                        mDbHelper.storePlaylist(playlist);
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+        } catch (Exception e){
+            Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+                    getMyPlaylists();
+                }
+            };
+            Log.e("Error was", e.getMessage());
+            Log.d("try", "failed");
+            Handler handler = new Handler();
+            handler.postDelayed(runnable, 5000);
+        }
     }
 }

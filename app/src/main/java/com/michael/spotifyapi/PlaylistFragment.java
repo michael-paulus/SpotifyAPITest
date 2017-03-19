@@ -57,6 +57,20 @@ public class PlaylistFragment extends ListFragment {
         MainActivity.itself.playMusic(smallPlaylist.uri, MainActivity.TYPE_PLAYLIST);
     }
 
+    public void setPlaylistGreen(String s) {
+        for (View v: playlistAdapter.getViews()){
+            TextView name = (TextView) v.findViewById(R.id.playlist_name);
+            name.setTextColor(getResources().getColor(R.color.white));
+            TextView tags = (TextView) v.findViewById(R.id.playlist_tags);
+            tags.setTextColor(getResources().getColor(R.color.lightGray));
+        }
+        View v = playlistAdapter.getViewByUri(s);
+        TextView name = (TextView) v.findViewById(R.id.playlist_name);
+        name.setTextColor(getResources().getColor(R.color.colorAccent));
+        TextView tags = (TextView) v.findViewById(R.id.playlist_tags);
+        tags.setTextColor(getResources().getColor(R.color.colorAccent));
+    }
+
     static class SmallPlaylistRep {
         String name;
         String uri;
@@ -73,20 +87,26 @@ public class PlaylistFragment extends ListFragment {
         private ArrayList<SmallPlaylistRep> playlists;
         private LayoutInflater mInflator;
 
-        public PlaylistAdapter() {
+        PlaylistAdapter() {
             super();
             playlists = new ArrayList<>();
             this.mInflator = mInflater;
         }
 
-        public void addPlayList(SmallPlaylistRep smallPlaylist) {
-            if (!playlists.contains(smallPlaylist)) {
+        void addPlayList(SmallPlaylistRep smallPlaylist) {
+            boolean toInsert = true;
+            for (SmallPlaylistRep iterator: playlists){
+                if (iterator.uri.equals(smallPlaylist.uri)){
+                    toInsert = false;
+                }
+            }
+            if (toInsert) {
                 playlists.add(smallPlaylist);
                 notifyDataSetChanged();
             }
         }
 
-        public SmallPlaylistRep getPlaylist(int position) {
+        SmallPlaylistRep getPlaylist(int position) {
             return playlists.get(position);
         }
 
@@ -97,6 +117,20 @@ public class PlaylistFragment extends ListFragment {
         @Override
         public int getCount() {
             return playlists.size();
+        }
+
+        View getViewByUri(String uri){
+            for (int i = 0; i<getListView().getChildCount(); i++){
+                SmallPlaylistRep playlist = getPlaylist(i);
+                if (playlist.uri.equals(uri)){
+                    return getViewAt(i);
+                }
+            }
+            return null;
+        }
+
+        private View getViewAt(int i) {
+            return getListView().getChildAt(i);
         }
 
         @Override
@@ -132,6 +166,15 @@ public class PlaylistFragment extends ListFragment {
             viewHolder.playlistTags.setText(smallPlaylist.tags.toString());
 
             return view;
+        }
+
+        ArrayList<View> getViews() {
+            ArrayList<View> childViews = new ArrayList<>();
+            int count = itself.getListView().getChildCount();
+            for (int i = 0; i<count; i++){
+                childViews.add(itself.getListView().getChildAt(i));
+            }
+            return childViews;
         }
     }
 

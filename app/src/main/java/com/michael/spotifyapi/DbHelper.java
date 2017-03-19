@@ -10,6 +10,8 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import kaaes.spotify.webapi.android.models.Pager;
 import kaaes.spotify.webapi.android.models.Playlist;
@@ -81,7 +83,7 @@ class DbHelper extends SQLiteOpenHelper {
             // Insert the new row, returning the primary key value of the new row
             long newRowId = db.insert(PLAYLIST_TABLE_NAME, null, values);
 
-            ArrayList<String> playlistTags = new ArrayList<>(Arrays.asList(playlist.description.split(",")));
+            ArrayList<String> playlistTags = new ArrayList<>(Arrays.asList(playlist.description.split(", ")));
             Log.d("Tags", playlistTags.toString());
             for (String tag: playlistTags){
                 ContentValues tagValues = new ContentValues();
@@ -161,5 +163,51 @@ class DbHelper extends SQLiteOpenHelper {
         }
 
         return smallPlaylists;
+    }
+
+    ArrayList<String> queryForTags() {
+        ArrayList<String> tags = new ArrayList<>();
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor mCursor = db.query(true, PLAYLIST_TAG_TABLE_NAME, new String[]{TAG}, null, null, null, null, "TAG DESC", null);
+        while (mCursor.moveToNext()){
+            Log.d("Tag found:", mCursor.getString(0));
+            tags.add(mCursor.getString(0));
+        }
+        mCursor.close();
+        return tags;
+    }
+
+    HashMap<Long, Float> calculatePlaylistScore(Map<String, Float> result) {
+        HashMap<Long, Float> scores = new HashMap<>();
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor mCursor = db.query(false, PLAYLIST_TAG_TABLE_NAME, new String[]{PLAYLIST__ID, TAG}, null, null, null, null, TAG + " DESC", null);
+        if (mCursor.getCount() > 0) {
+            while (mCursor.moveToNext()) {
+                Log.d("Tag found:", mCursor.getString(1));
+                if (scores.containsKey(mCursor.getLong(0))) {
+                    Float score = scores.get(mCursor.getLong(0));
+                    scores.remove(mCursor.getLong(0));
+                    scores.put(mCursor.getLong(0), score + result.get(mCursor.getString(1)));
+                    Log.d("Adjusted", String.valueOf(score) + " by " + result.get(mCursor.getString(1)));
+                } else {
+                    scores.put(mCursor.getLong(0), result.get(mCursor.getString(1)));
+                    Log.d("Adjusted", String.valueOf(mCursor.getLong(0)) + " with value " + result.get(mCursor.getString(1)));
+                }
+            }
+        }
+        mCursor.close();
+        return scores;
+    }
+
+    public String getPlaylistUri(Long bestPlaylistId) {
+        String uri = "";
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor mCursor = db.query(true, PLAYLIST_TABLE_NAME, new String[]{PLAYLIST__ID, PLAYLIST_SPOTIFY_URI}, PLAYLIST__ID + " = " + bestPlaylistId, null, null, null, PLAYLIST__ID + " DESC", null);
+        while (mCursor.moveToNext()){
+            Log.d("Playlist found", mCursor.getString(1));
+            uri = mCursor.getString(1);
+        }
+        mCursor.close();
+        return uri;
     }
 }

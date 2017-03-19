@@ -25,6 +25,9 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
@@ -48,9 +51,15 @@ import com.spotify.sdk.android.player.PlayerEvent;
 import com.spotify.sdk.android.player.Spotify;
 import com.spotify.sdk.android.player.SpotifyPlayer;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements
         SpotifyPlayer.NotificationCallback, ConnectionStateCallback, OnChartValueSelectedListener {
@@ -196,22 +205,27 @@ public class MainActivity extends AppCompatActivity implements
         playMusic("spotify:user:1154572061:playlist:6MPgJeqV7uSo8oIZCdRnGp", TYPE_PLAYLIST);
     }
 
-    void playMusic(String s, String typePlaylist) {
-        switch (typePlaylist) {
-            case TYPE_PLAYLIST:
-                if (mPlayer != null) {
-                    mPlayer.playUri(null, s, 0, 0);
-                    ImageView playButton = (ImageView) findViewById(R.id.play_button);
-                    playButton.setImageDrawable(getDrawable(R.drawable.ic_pause_button));
-                }
-                break;
-            default:
-                if (mPlayer != null) {
-                    mPlayer.playUri(null, s, 0, 0);
-                    ImageView playButton = (ImageView) findViewById(R.id.play_button);
-                    playButton.setImageDrawable(getDrawable(R.drawable.ic_pause_button));
-                }
-                break;
+    void playMusic(String s, String type) {
+        if (mPlayer.getMetadata().contextUri == null || !mPlayer.getMetadata().contextUri.equals(s)) {
+            switch (type) {
+                case TYPE_PLAYLIST:
+                    if (mPlayer != null) {
+                        mPlayer.playUri(null, s, 0, 0);
+                        ImageView playButton = (ImageView) findViewById(R.id.play_button);
+                        playButton.setImageDrawable(getDrawable(R.drawable.ic_pause_button));
+                        PlaylistFragment.itself.setPlaylistGreen(s);
+                    }
+                    break;
+                default:
+                    if (mPlayer != null) {
+                        mPlayer.playUri(null, s, 0, 0);
+                        ImageView playButton = (ImageView) findViewById(R.id.play_button);
+                        playButton.setImageDrawable(getDrawable(R.drawable.ic_pause_button));
+                    }
+                    break;
+            }
+        } else if (!mPlayer.getPlaybackState().isPlaying) {
+            resumePlayMusic();
         }
     }
 
@@ -486,8 +500,9 @@ public class MainActivity extends AppCompatActivity implements
                 return;
             }
             SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
-            String mSelectionClause = CalendarContract.Events.DTSTART + " BETWEEN " + begin + " AND "
-                    + end + " AND " + CalendarContract.Events.CALENDAR_ID + " = " + pref.getLong(getString(R.string.calendar_id), 0);
+            String mSelectionClause = "("+ CalendarContract.Events.DTSTART + " BETWEEN " + begin + " AND " + end
+                    + " OR " + CalendarContract.Events.DTSTART + " < " + begin + " AND " + CalendarContract.Events.DTEND + " > " + begin
+                    + ") AND " + CalendarContract.Events.CALENDAR_ID + " = " + pref.getLong(getString(R.string.calendar_id), 0);
             String[] mSelectionArgs = {};
             Cursor mCursor = getContentResolver().query(
                     CalendarContract.Events.CONTENT_URI,   // The content URI of the words table
@@ -498,12 +513,83 @@ public class MainActivity extends AppCompatActivity implements
             if (mCursor.getCount() > 0) {
                 while (mCursor.moveToNext()){
                     Log.d("Found event", mCursor.getString(3));
+                    determineSimilaritiesToPlaylistTags(mCursor.getString(3));
                 }
             } else {
                 Log.d("Found no", "event");
             }
             mCursor.close();
         }
+    }
+
+    private class SimilarityPackage{
+        ArrayList<String> tags;
+        String title;
+        SimilarityPackage(String title, ArrayList<String> tags){
+            this.tags = tags;
+            this.title = title;
+        }
+    }
+
+    private void determineSimilaritiesToPlaylistTags(String string) {
+        DbHelper mDbHelper = new DbHelper(this);
+        ArrayList<String> tags = mDbHelper.queryForTags();
+        new CalculateSimilarityTask().execute(new SimilarityPackage(string, tags));
+    }
+
+    private class CalculateSimilarityTask extends AsyncTask<SimilarityPackage, Void, Map<String, Float>> {
+
+        CalculateSimilarityTask() {
+        }
+
+        @Override
+        protected Map<String, Float> doInBackground(SimilarityPackage... params) {
+            ArrayList<String> tags = params[0].tags;
+            String title = params[0].title;
+            // Instantiate the RequestQueue.
+            String url ="http://swoogle.umbc.edu/SimService/GetSimilarity?operation=api&";
+            final HashMap<String, Float> tagFitMeasures = new HashMap<>();
+            for (final String tag: tags) {
+                DefaultHttpClient client = new DefaultHttpClient();
+                HttpGet httpGet = new HttpGet(url + "phrase1=" + title + "&phrase2=" + tag);
+                try {
+                    HttpResponse execute = client.execute(httpGet);
+                    InputStream content = execute.getEntity().getContent();
+
+                    BufferedReader buffer = new BufferedReader(new InputStreamReader(content));
+                    String s = "";
+                    while ((s = buffer.readLine()) != null) {
+                        tagFitMeasures.put(tag, Float.valueOf(s));
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return tagFitMeasures;
+        }
+
+        protected void onPostExecute(Map<String, Float> result) {
+            Log.d("Map Values:", result.toString());
+            rankPlaylists(result);
+        }
+    }
+
+    private void rankPlaylists(Map<String, Float> result) {
+        HashMap<Long, Float> playlistScores = new DbHelper(this).calculatePlaylistScore(result);
+        Long bestPlaylistId = getHighestPlaylistId(playlistScores);
+        String SpotifyUri = new DbHelper(this).getPlaylistUri(bestPlaylistId);
+        playMusic(SpotifyUri, TYPE_PLAYLIST);
+    }
+
+    private Long getHighestPlaylistId(HashMap<Long, Float> playlistScores) {
+        HashMap.Entry<Long, Float> maxEntry = null;
+        for (HashMap.Entry<Long, Float> entry: playlistScores.entrySet()){
+            if (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0){
+                maxEntry = entry;
+            }
+        }
+        Log.d("Found best playlist", String.valueOf(maxEntry.getKey()));
+        return maxEntry.getKey();
     }
 
     @Override
@@ -527,6 +613,7 @@ public class MainActivity extends AppCompatActivity implements
                 Intent webIntent = new Intent(this, SpotifyWebRequestService.class);
                 startService(webIntent);
             } else {
+                Log.d("MainActivity", "fetching playlists");
                 SpotifyWebRequestService.itself.getMyPlaylists();
             }
         }
