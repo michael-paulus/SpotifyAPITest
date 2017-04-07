@@ -26,8 +26,15 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
@@ -39,6 +46,9 @@ import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.github.mikephil.charting.utils.ColorTemplate;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.spotify.sdk.android.authentication.AuthenticationClient;
 import com.spotify.sdk.android.authentication.AuthenticationRequest;
 import com.spotify.sdk.android.authentication.AuthenticationResponse;
@@ -55,6 +65,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -69,6 +82,7 @@ public class MainActivity extends AppCompatActivity implements
     public static final int REQUEST_CODE = 1337;
     public static final String TYPE_PLAYLIST = "Playlist";
     public static MainActivity itself;
+    ArrayList<Integer> lastFourtyHeartRateValues;
 
     private Player mPlayer;
     private String AccessToken;
@@ -91,6 +105,11 @@ public class MainActivity extends AppCompatActivity implements
                 int i = intent.getIntExtra(SensorService.EXTRA_HR, 0);
                 Log.d("Received heart rate", String.valueOf(i));
                 addEntry(i);
+                lastFourtyHeartRateValues.add(i);
+                if (lastFourtyHeartRateValues.size() > 40){
+                    Log.d("Array size", String.valueOf(lastFourtyHeartRateValues.size()));
+                    lastFourtyHeartRateValues.remove(0);
+                }
             } else if (action.equals(SensorService.ACTION_HR_CONNECTED)) {
                 mChart = (LineChart) findViewById(R.id.hr_chart);
                 mChart.setOnChartValueSelectedListener(itself);
@@ -189,7 +208,7 @@ public class MainActivity extends AppCompatActivity implements
         set.setAxisDependency(YAxis.AxisDependency.LEFT);
         set.setColor(getColor(R.color.colorAccent));
         set.setLineWidth(2f);
-        set.setCircleRadius(0f);
+        set.setCircleRadius(1f);
         set.setDrawCircles(false);
         set.setMode(LineDataSet.Mode.CUBIC_BEZIER);
         set.setFillAlpha(65);
@@ -259,6 +278,7 @@ public class MainActivity extends AppCompatActivity implements
         itself = this;
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
         isInitialising = !pref.getBoolean("Introduced", false);
+        lastFourtyHeartRateValues = new ArrayList<>();
 
         AuthenticationRequest.Builder builder = new AuthenticationRequest.Builder(CLIENT_ID,
                 AuthenticationResponse.Type.TOKEN,
@@ -517,6 +537,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
             } else {
                 Log.d("Found no", "event");
+                determineSimilaritiesToPlaylistTags("relax");
             }
             mCursor.close();
         }
@@ -546,6 +567,7 @@ public class MainActivity extends AppCompatActivity implements
         protected Map<String, Float> doInBackground(SimilarityPackage... params) {
             ArrayList<String> tags = params[0].tags;
             String title = params[0].title;
+            getTagFromNeuralNetwork();
             // Instantiate the RequestQueue.
             String url ="http://swoogle.umbc.edu/SimService/GetSimilarity?operation=api&";
             final HashMap<String, Float> tagFitMeasures = new HashMap<>();
@@ -566,6 +588,64 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
             return tagFitMeasures;
+        }
+
+        private String getTagFromNeuralNetwork() {
+            String result = "";
+            Log.d("RNN", String.valueOf(lastFourtyHeartRateValues.size()));
+            if (lastFourtyHeartRateValues.size() >= 40) {
+                Log.d("RNN", "starting request from RNN");
+                String uri = "http://81.169.137.80:33333/predict";
+                JSONObject jsonData = new JSONObject();
+                JSONArray jsonArray = new JSONArray();
+                for (Integer i: lastFourtyHeartRateValues){
+                    jsonArray.put(i);
+                }
+                try {
+                    jsonData.put("data", jsonArray);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                String data = jsonData.toString();
+                try {
+                    URL object = new URL(uri);
+
+                    HttpURLConnection con = (HttpURLConnection) object.openConnection();
+                    con.setDoOutput(true);
+                    con.setDoInput(true);
+                    con.setRequestProperty("Content-Type", "application/json");
+                    con.setRequestProperty("Accept", "application/json");
+                    con.setRequestMethod("POST");
+                    Log.d("RNN", data);
+
+                    OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
+                    wr.write(data);
+                    wr.flush();
+
+                    StringBuilder sb = new StringBuilder();
+                    int HttpResult = con.getResponseCode();
+                    if (HttpResult == HttpURLConnection.HTTP_OK) {
+                        BufferedReader br = new BufferedReader(
+                                new InputStreamReader(con.getInputStream(), "utf-8"));
+                        String line = null;
+                        while ((line = br.readLine()) != null) {
+                            sb.append(line + "\n");
+                        }
+                        br.close();
+                        System.out.println("" + sb.toString());
+                        result = sb.toString();
+                        Log.d("RNN", sb.toString());
+                    } else {
+                        Log.d("RNN", con.getResponseMessage());
+                    }
+
+                } catch (Exception e) {
+                    Log.d("RNN", e.getMessage());
+                }
+                return result;
+            }
+            else return "";
         }
 
         protected void onPostExecute(Map<String, Float> result) {
