@@ -11,6 +11,7 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import kaaes.spotify.webapi.android.models.Pager;
@@ -179,6 +180,7 @@ class DbHelper extends SQLiteOpenHelper {
 
     HashMap<Long, Float> calculatePlaylistScore(Map<String, Float> result) {
         HashMap<Long, Float> scores = new HashMap<>();
+        HashMap<Long, Float> tagCount = new HashMap<>();
         SQLiteDatabase db = getReadableDatabase();
         Cursor mCursor = db.query(false, PLAYLIST_TAG_TABLE_NAME, new String[]{PLAYLIST__ID, TAG}, null, null, null, null, TAG + " DESC", null);
         if (mCursor.getCount() > 0) {
@@ -189,11 +191,25 @@ class DbHelper extends SQLiteOpenHelper {
                     scores.remove(mCursor.getLong(0));
                     scores.put(mCursor.getLong(0), score + result.get(mCursor.getString(1)));
                     Log.d("Adjusted", String.valueOf(score) + " by " + result.get(mCursor.getString(1)));
+                    Float currentCount = tagCount.get(mCursor.getLong(0));
+                    tagCount.remove(mCursor.getLong(0));
+                    tagCount.put(mCursor.getLong(0), currentCount+1);
                 } else {
                     scores.put(mCursor.getLong(0), result.get(mCursor.getString(1)));
+                    tagCount.put(mCursor.getLong(0), 1f);
                     Log.d("Adjusted", String.valueOf(mCursor.getLong(0)) + " with value " + result.get(mCursor.getString(1)));
                 }
             }
+        }
+        Iterator it = scores.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            Float value = (Float) pair.getValue();
+            Float count = tagCount.get((Long) pair.getKey());
+            value = value/(Double.valueOf(Math.cbrt((double) count))).floatValue();
+            it.remove(); // avoids a ConcurrentModificationException
+            scores.remove((Long) pair.getKey());
+            scores.put((Long) pair.getKey(), value);
         }
         mCursor.close();
         return scores;

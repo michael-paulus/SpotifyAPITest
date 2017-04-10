@@ -71,6 +71,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -567,7 +568,7 @@ public class MainActivity extends AppCompatActivity implements
         protected Map<String, Float> doInBackground(SimilarityPackage... params) {
             ArrayList<String> tags = params[0].tags;
             String title = params[0].title;
-            getTagFromNeuralNetwork();
+            String hrtag = getTagFromNeuralNetwork();
             // Instantiate the RequestQueue.
             String url ="http://swoogle.umbc.edu/SimService/GetSimilarity?operation=api&";
             final HashMap<String, Float> tagFitMeasures = new HashMap<>();
@@ -587,6 +588,27 @@ public class MainActivity extends AppCompatActivity implements
                     e.printStackTrace();
                 }
             }
+            if (!hrtag.equals("")) {
+                for (final String tag : tags) {
+                    DefaultHttpClient client = new DefaultHttpClient();
+                    HttpGet httpGet = new HttpGet(url + "phrase1=" + title + "&phrase2=" + tag);
+                    try {
+                        HttpResponse execute = client.execute(httpGet);
+                        InputStream content = execute.getEntity().getContent();
+
+                        BufferedReader buffer = new BufferedReader(new InputStreamReader(content));
+                        String s = "";
+                        while ((s = buffer.readLine()) != null) {
+                            Float currentvalue = tagFitMeasures.get(tag);
+                            Float score = (currentvalue + Float.valueOf(s));
+                            score *= score;
+                            tagFitMeasures.put(tag, score);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
             return tagFitMeasures;
         }
 
@@ -598,7 +620,9 @@ public class MainActivity extends AppCompatActivity implements
                 String uri = "http://81.169.137.80:33333/predict";
                 JSONObject jsonData = new JSONObject();
                 JSONArray jsonArray = new JSONArray();
-                for (Integer i: lastFourtyHeartRateValues){
+                ArrayList<Integer> hrValues = lastFourtyHeartRateValues;
+                Collections.reverse(hrValues);
+                for (Integer i: hrValues){
                     jsonArray.put(i);
                 }
                 try {
@@ -635,6 +659,16 @@ public class MainActivity extends AppCompatActivity implements
                         br.close();
                         System.out.println("" + sb.toString());
                         result = sb.toString();
+                        switch (result){
+                            case "0":
+                                return "calm";
+                            case "1":
+                                return "activating";
+                            case "2":
+                                return "power";
+                            case "3":
+                                return "cooling";
+                        }
                         Log.d("RNN", sb.toString());
                     } else {
                         Log.d("RNN", con.getResponseMessage());
