@@ -622,8 +622,12 @@ public class MainActivity extends AppCompatActivity implements
                 JSONArray jsonArray = new JSONArray();
                 ArrayList<Integer> hrValues = lastFourtyHeartRateValues;
                 Collections.reverse(hrValues);
+                SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(itself);
+                Integer calmHeartRate = pref.getInt("CalmHeartRate", 70);
+                Integer activeHeartRate = pref.getInt("ActiveHeartRate", 130);
                 for (Integer i: hrValues){
-                    jsonArray.put(i);
+                    Integer value = ((i-calmHeartRate)*(150-65))/(activeHeartRate-calmHeartRate)+65;
+                    jsonArray.put(value);
                 }
                 try {
                     jsonData.put("data", jsonArray);
