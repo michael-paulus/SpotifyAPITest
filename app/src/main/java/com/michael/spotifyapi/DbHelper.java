@@ -201,15 +201,12 @@ class DbHelper extends SQLiteOpenHelper {
                 }
             }
         }
-        Iterator it = scores.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry)it.next();
-            Float value = (Float) pair.getValue();
-            Float count = tagCount.get((Long) pair.getKey());
+        for (Map.Entry<Long, Float> pair : scores.entrySet()) {
+            Long key = pair.getKey();
+            Float value = pair.getValue();
+            Float count = tagCount.get(key);
             value = value/(Double.valueOf(Math.cbrt((double) count))).floatValue();
-            it.remove(); // avoids a ConcurrentModificationException
-            scores.remove((Long) pair.getKey());
-            scores.put((Long) pair.getKey(), value);
+            scores.put(key, value);
         }
         mCursor.close();
         return scores;

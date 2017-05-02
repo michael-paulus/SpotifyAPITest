@@ -17,6 +17,7 @@ import android.preference.PreferenceManager;
 import android.provider.CalendarContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.telephony.PhoneNumberUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -26,10 +27,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -46,9 +44,6 @@ import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.github.mikephil.charting.utils.ColorTemplate;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.spotify.sdk.android.authentication.AuthenticationClient;
 import com.spotify.sdk.android.authentication.AuthenticationRequest;
 import com.spotify.sdk.android.authentication.AuthenticationResponse;
@@ -66,7 +61,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
+import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -74,6 +69,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity implements
         SpotifyPlayer.NotificationCallback, ConnectionStateCallback, OnChartValueSelectedListener {
@@ -559,6 +556,15 @@ public class MainActivity extends AppCompatActivity implements
         new CalculateSimilarityTask().execute(new SimilarityPackage(string, tags));
     }
 
+    private static String readAll(Reader rd) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        int cp;
+        while ((cp = rd.read()) != -1) {
+            sb.append((char) cp);
+        }
+        return sb.toString();
+    }
+
     private class CalculateSimilarityTask extends AsyncTask<SimilarityPackage, Void, Map<String, Float>> {
 
         CalculateSimilarityTask() {
@@ -569,20 +575,33 @@ public class MainActivity extends AppCompatActivity implements
             ArrayList<String> tags = params[0].tags;
             String title = params[0].title;
             String hrtag = getTagFromNeuralNetwork();
+            String preface = "using wup is ";
             // Instantiate the RequestQueue.
-            String url ="http://swoogle.umbc.edu/SimService/GetSimilarity?operation=api&";
+            String url ="http://maraca.d.umn.edu/cgi-bin/similarity/similarity.cgi?";
             final HashMap<String, Float> tagFitMeasures = new HashMap<>();
             for (final String tag: tags) {
                 DefaultHttpClient client = new DefaultHttpClient();
-                HttpGet httpGet = new HttpGet(url + "phrase1=" + title + "&phrase2=" + tag);
+                HttpGet httpGet = new HttpGet(url + "word1=" + title.replaceAll("\\W+","%20") + "&senses1=all&word2=" + tag.replaceAll("\\W+","%20") + "&senses2=all&measure=wup&rootnode=yes");
                 try {
                     HttpResponse execute = client.execute(httpGet);
                     InputStream content = execute.getEntity().getContent();
 
                     BufferedReader buffer = new BufferedReader(new InputStreamReader(content));
-                    String s = "";
-                    while ((s = buffer.readLine()) != null) {
-                        tagFitMeasures.put(tag, Float.valueOf(s));
+                    String text = readAll(buffer);
+                    String textsubstr = text.substring(text.indexOf(preface)+preface.length(), text.indexOf(preface)+preface.length()+6);
+                    Log.d("extracted", textsubstr);
+                    String value = textsubstr.split("\\.")[0]+"."+textsubstr.split("\\.")[1];
+                    if (value.contains("1.0")){
+                        value = "blerp";
+                    } else if (value.contains("1.")){
+                        value = "1";
+                    }
+                    Log.d("substr", value);
+                    if (isLegalValue(value)){
+                        Float floatValue = Float.valueOf(value);
+                        tagFitMeasures.put(tag, floatValue);
+                    } else {
+                        tagFitMeasures.put(tag, 0F);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -591,16 +610,26 @@ public class MainActivity extends AppCompatActivity implements
             if (!hrtag.equals("")) {
                 for (final String tag : tags) {
                     DefaultHttpClient client = new DefaultHttpClient();
-                    HttpGet httpGet = new HttpGet(url + "phrase1=" + title + "&phrase2=" + tag);
+                    HttpGet httpGet = new HttpGet(url + "word1=" + title.replaceAll("\\W+","%20") + "&senses1=all&word2=" + tag.replaceAll("\\W+","%20") + "&senses2=all&measure=wup&rootnode=yes");
                     try {
                         HttpResponse execute = client.execute(httpGet);
                         InputStream content = execute.getEntity().getContent();
 
                         BufferedReader buffer = new BufferedReader(new InputStreamReader(content));
-                        String s = "";
-                        while ((s = buffer.readLine()) != null) {
+                        String text = readAll(buffer);
+                        String textsubstr = text.substring(text.indexOf(preface)+preface.length(), text.indexOf(preface)+preface.length()+6);
+                        Log.d("extracted", textsubstr);
+                        String value = textsubstr.split("\\.")[0]+"."+textsubstr.split("\\.")[1];
+                        if (value.contains("1.0")){
+                            value = "blerp";
+                        } else if (value.contains("1.")){
+                            value = "1";
+                        }
+                        Log.d("substr", value);
+                        if (isLegalValue(value)) {
+                            Float floatValue = Float.valueOf(value);
                             Float currentvalue = tagFitMeasures.get(tag);
-                            Float score = (currentvalue + Float.valueOf(s));
+                            Float score = (currentvalue + floatValue);
                             score *= score;
                             tagFitMeasures.put(tag, score);
                         }
@@ -610,6 +639,20 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
             return tagFitMeasures;
+        }
+
+        private boolean isLegalValue(String value) {
+            try
+            {
+                double d = Double.parseDouble(value);
+            }
+            catch(NumberFormatException nfe)
+            {
+                Log.d(value, "is not legal");
+                return false;
+            }
+            Log.d(value, "is legal");
+            return true;
         }
 
         private String getTagFromNeuralNetwork() {
