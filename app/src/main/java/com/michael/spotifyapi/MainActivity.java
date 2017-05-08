@@ -285,6 +285,11 @@ public class MainActivity extends AppCompatActivity implements
         AuthenticationRequest request = builder.build();
         registerMessageReceiver();
 
+        if (SensorService.itself == null){
+            Intent SensorServiceIntent = new Intent(this, SensorService.class);
+            startService(SensorServiceIntent);
+        }
+
         AuthenticationClient.openLoginActivity(this, REQUEST_CODE, request);
     }
 
@@ -660,7 +665,7 @@ public class MainActivity extends AppCompatActivity implements
             Log.d("RNN", String.valueOf(lastFourtyHeartRateValues.size()));
             if (lastFourtyHeartRateValues.size() >= 40) {
                 Log.d("RNN", "starting request from RNN");
-                String uri = "http://81.169.137.80:33333/predict";
+                String uri = "http://web01.iss.uni-saarland.de:8080/predict";
                 JSONObject jsonData = new JSONObject();
                 JSONArray jsonArray = new JSONArray();
                 ArrayList<Integer> hrValues = lastFourtyHeartRateValues;
