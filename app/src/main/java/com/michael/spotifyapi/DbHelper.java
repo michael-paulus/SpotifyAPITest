@@ -73,7 +73,6 @@ class DbHelper extends SQLiteOpenHelper {
             "DROP TABLE IF EXISTS " + PLAYLIST_TAG_TABLE_NAME;
 
     void storePlaylist(Playlist playlist) {
-        if (playlist.name.contains("API")) {
             SQLiteDatabase db = getWritableDatabase();
 
             // Create a new map of values, where column names are the keys
@@ -95,7 +94,6 @@ class DbHelper extends SQLiteOpenHelper {
             }
             Log.d("Songs", playlist.tracks.toString());
             PlaylistFragment.itself.notfiyDataSetChanged();
-        }
     }
 
     void deletePlaylists() {
